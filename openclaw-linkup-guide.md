@@ -1,27 +1,39 @@
-# Add Real-Time Web Search to Your OpenClaw Agent with Linkup
+# OpenClaw Integration
 
-LLMs have a training cutoff. For agents handling current data — news, pricing, company intelligence — this creates a retrieval gap. This guide connects OpenClaw to Linkup's search API to close it.
-
-## Prerequisites
-
-- OpenClaw installed ([docs](https://docs.openclaw.ai))
-- Linkup API key from [app.linkup.so](https://app.linkup.so)
-- clawhub CLI: `npm i -g clawhub`
+Integrate Linkup with [OpenClaw](https://openclaw.ai) to give your self-hosted agent real-time web search via the [clawhub](https://clawhub.ai) skill registry.
 
 ---
 
-## Setup
+## Prerequisites
 
-### 1. Install the skill
+- OpenClaw installed and running ([quick start](https://docs.openclaw.ai/start/getting-started))
+- A Linkup API key — get one at [app.linkup.so](https://app.linkup.so)
+- `clawhub` CLI: `npm i -g clawhub`
+
+---
+
+## Installation
+
+Install the Linkup skill from clawhub:
 
 ```bash
 clawhub install linkup-search
 clawhub list  # verify
 ```
 
-You can also ask your OpenClaw agent directly: *"Install the Linkup skill from clawhub."*
+Alternatively, ask your OpenClaw agent directly:
 
-### 2. Configure your API key
+> "Install the Linkup skill from clawhub."
+
+The skill will be available at the next session start. No restart required if the skills watcher is enabled.
+
+The skill is available at [clawhub.ai/shauryajain21/linkup-search](https://clawhub.ai/shauryajain21/linkup-search).
+
+---
+
+## Configuration
+
+Add your API key to `openclaw.json`:
 
 ```json
 {
@@ -29,24 +41,27 @@ You can also ask your OpenClaw agent directly: *"Install the Linkup skill from c
     "entries": {
       "linkup-search": {
         "enabled": true,
-        "env": { "LINKUP_API_KEY": "your-api-key-here" }
+        "env": {
+          "LINKUP_API_KEY": "your-api-key-here"
+        }
       }
     }
   }
 }
 ```
 
-### 3. Start a new session
-
-Skills load at session start. Open a new chat — the agent will now call Linkup for queries that require current data.
+This scopes the key to the skill, which is preferable for multi-agent setups over using a `.env` file.
 
 ---
 
 ## How It Works
 
-The skill injects retrieval instructions into the system prompt. The agent selects depth based on query complexity and sends a POST to `https://api.linkup.so/v1/search`:
+OpenClaw injects the skill's instructions into the system prompt at session start. The agent calls Linkup when a query requires current information, instead of relying on training data.
+
+A typical call looks like:
 
 ```json
+POST https://api.linkup.so/v1/search
 {
   "q": "Stripe payment processing fees 2025",
   "depth": "standard",
@@ -54,17 +69,27 @@ The skill injects retrieval instructions into the system prompt. The agent selec
 }
 ```
 
-Linkup returns a structured answer with cited sources. The agent formats and returns it to the user.
+Linkup returns a structured, source-cited answer. The agent reasons over the result and formats the reply.
 
-**Depth selection:** `standard` for single-fact lookups; `deep` for multi-source synthesis or page extraction.
+**Depth selection:**
+- `standard` — optimized for latency. Use for single-fact lookups.
+- `deep` — higher recall, multi-source synthesis. Use for company research, competitive analysis, or page extraction.
 
 ---
 
-## Usage Patterns
+## Usage Examples
 
-| Query type | Depth | Example |
-|---|---|---|
-| Current fact | standard | "What is Vercel's current free tier limit?" |
-| Competitive comparison | deep | "Compare Vercel vs Netlify pricing" |
-| Multi-source synthesis | deep | "Summarize OpenAI's last 3 press releases" |
-| Company profile | deep | "Funding, team size, and product of Acme Corp" |
+| Query | Depth |
+|---|---|
+| "What is Vercel's current free tier limit?" | standard |
+| "Compare Vercel and Netlify pricing" | deep |
+| "Summarize OpenAI's last 3 press releases" | deep |
+| "Funding history and team size of Acme Corp" | deep |
+
+---
+
+## Related
+
+- [Linkup API reference](https://docs.linkup.so/api-reference/search)
+- [Prompting guide](https://docs.linkup.so/documentation/get-started/prompting)
+- [OpenClaw docs](https://docs.openclaw.ai)
